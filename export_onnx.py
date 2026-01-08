@@ -4,6 +4,7 @@ from qai_hub_models.models.openai_clip.model import OpenAIClip
 
 # --- Configuration for File Saving ---
 ONNX_DIR = "exported_onnx"
+device = torch.device("cpu") # use CPU to export onnx model to avoid GPU device issues
 # -----------------------------------
 
 # -----------------------------
@@ -15,17 +16,18 @@ print(f"Saving ONNX files to directory: {os.path.abspath(ONNX_DIR)}")
 # -----------------------------
 # 2. Dummy inputs
 # -----------------------------
-DUMMY_IMAGE_INPUT = torch.rand(1, 3, 224, 224, dtype=torch.float32)
-DUMMY_TEXT_INPUT = torch.randint(0, 49408, (1, 77), dtype=torch.int64)
+DUMMY_IMAGE_INPUT = torch.rand(1, 3, 224, 224, dtype=torch.float32, device=device)
+DUMMY_TEXT_INPUT = torch.randint(0, 49408, (1, 77), dtype=torch.int64, device=device)
 
 # -----------------------------
 # 3. Load OpenAIClip wrapper and define encoders
 # -----------------------------
 print("Loading OpenAIClip wrapper model...")
-clip_wrapper_model = OpenAIClip.from_pretrained()
+clip_wrapper_model = OpenAIClip.from_pretrained().to(device)
 clip_wrapper_model.eval()
 
-clip_model = clip_wrapper_model.clip 
+clip_model = clip_wrapper_model.clip.to(device)
+clip_model = clip_model.to(torch.float32) # convert all model params to float32 type, consistent with input type in compiling and profiling via AIHub
 clip_model.eval()
 
 class ImageEncoderWrapper(torch.nn.Module):
